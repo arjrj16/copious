@@ -82,41 +82,76 @@ def clean_email_text(text):
     
     return clean_text.strip()
 
+def fetch_first_n_emails(service, n=100):
+    """
+    Fetches and parses the first `n` emails from the user's Gmail account.
+    Returns a list of dictionaries with subject, sender, and cleaned body.
+    """
+    emails = []
+    
+    # Get the list of message IDs
+    results = service.users().messages().list(userId='me', maxResults=n).execute()
+    messages = results.get('messages', [])
+
+    for msg in messages:
+        try:
+            message_id = msg['id']
+            raw_email = fetch_email_raw(service, message_id)
+            mime_msg = decode_email(raw_email)
+            parsed_email = parse_mime_email(mime_msg)
+            parsed_email['body'] = clean_email_text(parsed_email['body'])
+            emails.append(parsed_email)
+        except Exception as e:
+            print(f"Error processing message {msg['id']}: {e}")
+            continue
+
+    return emails
+
+
 
 
 if __name__ == "__main__":
     service = get_gmail_service()
-    
-    # For demonstration, retrieve the first email's message ID
-    results = service.users().messages().list(userId='me', maxResults=1).execute()
-    messages = results.get('messages', [])
-    
-    if not messages:
-        print("No messages found.")
-    else:
-        message_id = messages[0]['id']
-        raw_email = fetch_email_raw(service, message_id)
-        mime_msg = decode_email(raw_email)
-        print("Email Retrieved and Decoded Successfully")
+    emails = fetch_first_n_emails(service, n=100)
 
-    service = get_gmail_service()
+    for i, email in enumerate(emails):
+        print(f"\nEmail #{i+1}")
+        print(f"Subject: {email['subject']}")
+        print(f"Sender: {email['sender']}")
+        print(f"Body (preview): {email['body'][:200]}")  # Preview first 200 characters
+
+    # service = get_gmail_service()
     
-    # Retrieve one email for demonstration purposes
-    results = service.users().messages().list(userId='me', maxResults=1).execute()
-    messages = results.get('messages', [])
+    # # For demonstration, retrieve the first email's message ID
+    # results = service.users().messages().list(userId='me', maxResults=1).execute()
+    # messages = results.get('messages', [])
     
-    # if messages:
+    # if not messages:
+    #     print("No messages found.")
+    # else:
     #     message_id = messages[0]['id']
     #     raw_email = fetch_email_raw(service, message_id)
     #     mime_msg = decode_email(raw_email)
-    #     parsed_email = parse_mime_email(mime_msg)
-    #     print("Parsed Email Data:")
-    #     print("Subject:", parsed_email['subject'])
-    #     print("Sender:", parsed_email['sender'])
-    #     print("Body Preview:", parsed_email['body'][:])  # Print first 200 characters
-    # else:
-    #     print("No emails to parse.")
+    #     print("Email Retrieved and Decoded Successfully")
 
-    raw_text = "<html><body>Hello, please find the update below.<br><br>Thanks,<br>John Doe</body></html>"
-    print(clean_email_text(raw_text))
+    # service = get_gmail_service()
+    
+    # # Retrieve one email for demonstration purposes
+    # results = service.users().messages().list(userId='me', maxResults=1).execute()
+    # messages = results.get('messages', [])
+    
+    # # if messages:
+    # #     message_id = messages[0]['id']
+    # #     raw_email = fetch_email_raw(service, message_id)
+    # #     mime_msg = decode_email(raw_email)
+    # #     parsed_email = parse_mime_email(mime_msg)
+    # #     print("Parsed Email Data:")
+    # #     print("Subject:", parsed_email['subject'])
+    # #     print("Sender:", parsed_email['sender'])
+    # #     print("Body Preview:", parsed_email['body'][:])  # Print first 200 characters
+    # # else:
+    # #     print("No emails to parse.")
+
+    # raw_text = "<html><body>Hello, please find the update below.<br><br>Thanks,<br>John Doe</body></html>"
+    # print(clean_email_text(raw_text))
 
