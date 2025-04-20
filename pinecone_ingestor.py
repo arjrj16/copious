@@ -3,6 +3,10 @@ from transformers import AutoTokenizer
 from vector_embeddings import final_embeddings
 import time
 from email_preprocessing import fetch_first_n_emails, get_gmail_service
+import openai 
+
+openai.api_key = ""
+
 pc = Pinecone(api_key="pcsk_3DGuoh_3cqeJ3msXduq2r4PrHCCh9EWceg4CGE2WksZEuh2vNAwAw9yLxZeFz24LaDrhjv")
 index = "semanticsearch7"
 pc.create_index(
@@ -18,11 +22,10 @@ service=get_gmail_service()
 data=fetch_first_n_emails(service)
 #inputs = [i["body"] for i in data]
 #embeddings = final_embeddings(inputs)
-embeddings = openai.embeddings.create(
-    model="text-embedding-3-small",
-    inputs=[i["body"] for i in data],
-    parameters={"input_type": "passage", "truncate": "END"}
-)
+embeddings = [openai.Embeddings.create(
+    input=i["body"],
+    model="text-embedding-ada-002")["data"][0]["embedding"] 
+    for i in data]
 
 while not pc.describe_index(index).status['ready']:
     time.sleep(1)
